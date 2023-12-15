@@ -219,15 +219,15 @@ void SimpleLoRaApp::sendJoinRequest()
     cInfo->setLoRaCR(loRaCR);
     pktRequest->setControlInfo(cInfo);*/
 
-    sfVector.record(getSF());
-    tpVector.record(getTP());
+//    sfVector.record(getSF());
+//    tpVector.record(getTP());
     cModule *host = getContainingNode(this);
     TurtleMobility *mobility = check_and_cast<TurtleMobility *>(host->getSubmodule("mobility"));
     Coord coord = mobility->getCurrentPosition();
-    positionXVector.record(coord.x - 200.0);
-    positionYVector.record(coord.y - 200.0);
-    payload->setX(coord.x - 200.0);
-    payload->setY(coord.y - 200.0);
+//    positionXVector.record(coord.x - 2000.0);
+//    positionYVector.record(coord.y - 2000.0);
+    payload->setX(coord.x - 2000.0);
+    payload->setY(coord.y - 2000.0);
     payload->setCreationTime(simTime().raw());
 
     EV << "Wysylam pakiet z TP: " << getTP() << endl;

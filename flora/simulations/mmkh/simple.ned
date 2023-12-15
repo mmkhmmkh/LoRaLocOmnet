@@ -16,12 +16,12 @@ network LoRaLocSimple
     parameters:
         int numberOfNodes = default(1);
         int numberOfGateways = default(4);
-        int networkSizeX = default(500);
-        int networkSizeY = default(500);
+        int networkSizeX = default(5000);
+        int networkSizeY = default(5000);
         @display("bgb=562,417");
     submodules:
         loRaNodes[numberOfNodes]: LoRaNode {
-            @display("p=200,200");
+            @display("p=2000,2000");
         }
         loRaGW[numberOfGateways]: LoRaGW;
         LoRaMedium: LoRaMedium {

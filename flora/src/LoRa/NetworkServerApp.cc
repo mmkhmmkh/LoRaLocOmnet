@@ -124,7 +124,7 @@ void NetworkServerApp::finish()
         recordScalar(stringScalar.c_str(), it->second);
     }
 
-    receivedRSSI.recordAs("receivedRSSI");
+//    receivedRSSI.recordAs("receivedRSSI");
     recordScalar("totalReceivedPackets", totalReceivedPackets);
 
     while(!receivedPackets.empty()) {
@@ -348,7 +348,7 @@ void NetworkServerApp::processScheduledPacket(cMessage* selfMsg)
                 const L3Address& gwAddress = std::get<0>(receivedPackets[i].possibleGateways[j]);
 
                 for(uint k=0; k < knownGateways.size(); k++) {
-                    if (knownGateways[k].ipAddr == gwAddress && !(coords->x < 0.1 && coords->y > 199.9)) {
+                    if (knownGateways[k].ipAddr == gwAddress && !(coords->x < 0.1 && coords->y > 1999.9)) {
                         knownGateways[k].receivedSN->record(frameAux->getSequenceNumber());
                         knownGateways[k].nodeX->record(coords->x);
                         knownGateways[k].nodeY->record(coords->y);
@@ -374,7 +374,7 @@ void NetworkServerApp::processScheduledPacket(cMessage* selfMsg)
     {
         counterUniqueReceivedPackets++;
     }
-    receivedRSSI.collect(frame->getRSSI());
+//    receivedRSSI.collect(frame->getRSSI());
 //    if(evaluateADRinServer)
 //    {
 //        evaluateADR(pkt, pickedGateway, SNIRinGW, RSSIinGW);
