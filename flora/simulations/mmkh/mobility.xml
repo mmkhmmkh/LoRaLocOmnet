@@ -1,0 +1,19 @@
+<movement>
+		
+	<set speed="0.02" x="200" y="200"/>
+	<repeat n="25">
+		<repeat n="50">
+		<forward d="4"/>
+		</repeat>
+		<turn angle="90"/>
+		<forward d="4"/>
+		<turn angle="90"/>
+		<repeat n="50">
+		<forward d="4"/>
+		</repeat>
+		<turn angle="-90"/>
+		<forward d="4"/>
+		<turn angle="-90"/>
+	</repeat>
+	
+</movement>

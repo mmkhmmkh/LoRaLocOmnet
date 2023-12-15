@@ -1,0 +1,36 @@
+// LoRaAppPacketSerializer.cc
+#include "inet/common/packet/serializer/ChunkSerializerRegistry.h"
+#include "LoRaAppPacketSerializer.h.ignore"
+
+using namespace inet;
+
+namespace flora {
+    Register_Serializer(LoRaAppPacket, LoRaAppPacketSerializer);
+
+    void LoRaAppPacketSerializer::serialize(MemoryOutputStream& stream, const Ptr<const Chunk>& chunk) const {
+        const auto& pkt = staticPtrCast<const LoRaAppPacket>(chunk);
+
+        stream.writeUint32Le(pkt->getMsgType());
+        stream.writeUint32Le(pkt->getSampleMeasurement());
+        double x = pkt->getCoordinates().x;
+        double y = pkt->getCoordinates().y;
+        double z = pkt->getCoordinates().z;
+        stream.writeBytes((unsigned char*)(&x), B(8));
+        stream.writeBytes((unsigned char*)(&y), B(8));
+        stream.writeBytes((unsigned char*)(&z), B(8));
+
+    }
+
+    const Ptr<Chunk> LoRaAppPacketSerializer::deserialize(MemoryInputStream& stream) const {
+        auto pkt = makeShared<LoRaAppPacket>();
+        pkt->setMsgType(stream.readUint32Le());
+        pkt->setSampleMeasurement(stream.readUint32Le());
+        double x,y,z;
+        stream.readBytes((unsigned char*)&x, B(8));
+        stream.readBytes((unsigned char*)&y, B(8));
+        stream.readBytes((unsigned char*)&z, B(8));
+        const Coord coord(x,y,z);
+        pkt->setCoordinates(coord);
+        return pkt;
+    }
+}

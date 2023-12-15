@@ -1,0 +1,18 @@
+// LoRaAppPacketSerializer.h
+#ifndef __LORAAPPPACKETSERIALIZER_H
+#define __LORAAPPPACKETSERIALIZER_H
+
+#include "inet/common/packet/serializer/FieldsChunkSerializer.h"
+#include "LoRaAppPacket_m.h"
+
+namespace flora {
+    class LoRaAppPacketSerializer : public inet::FieldsChunkSerializer {
+      protected:
+        virtual void serialize(inet::MemoryOutputStream& stream, const inet::Ptr<const inet::Chunk>& chunk) const override;
+        virtual const inet::Ptr<inet::Chunk> deserialize(inet::MemoryInputStream& stream) const override;
+
+      public:
+        LoRaAppPacketSerializer() : FieldsChunkSerializer() {}
+    };
+}
+#endif // __LORAAPPPACKETSERIALIZER_H
