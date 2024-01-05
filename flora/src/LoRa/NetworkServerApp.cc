@@ -117,6 +117,30 @@ void NetworkServerApp::finish()
             delete knownGateways[i].nodeX;
             delete knownGateways[i].nodeY;
             delete knownGateways[i].deltaT;
+            delete knownGateways[i].GW0historySNIR;
+            delete knownGateways[i].GW0historyRSSI;
+            delete knownGateways[i].GW0receivedSN;
+            delete knownGateways[i].GW0nodeX;
+            delete knownGateways[i].GW0nodeY;
+            delete knownGateways[i].GW0deltaT;
+            delete knownGateways[i].GW1historySNIR;
+            delete knownGateways[i].GW1historyRSSI;
+            delete knownGateways[i].GW1receivedSN;
+            delete knownGateways[i].GW1nodeX;
+            delete knownGateways[i].GW1nodeY;
+            delete knownGateways[i].GW1deltaT;
+            delete knownGateways[i].GW2historySNIR;
+            delete knownGateways[i].GW2historyRSSI;
+            delete knownGateways[i].GW2receivedSN;
+            delete knownGateways[i].GW2nodeX;
+            delete knownGateways[i].GW2nodeY;
+            delete knownGateways[i].GW2deltaT;
+            delete knownGateways[i].GW3historySNIR;
+            delete knownGateways[i].GW3historyRSSI;
+            delete knownGateways[i].GW3receivedSN;
+            delete knownGateways[i].GW3nodeX;
+            delete knownGateways[i].GW3nodeY;
+            delete knownGateways[i].GW3deltaT;
         }
     for (std::map<int,int>::iterator it=numReceivedPerNode.begin(); it != numReceivedPerNode.end(); ++it)
     {
@@ -184,7 +208,10 @@ bool NetworkServerApp::isPacketProcessed(const Ptr<const LoRaMacFrame> &pkt)
 
     for(const auto & elem : knownNodes) {
         if(elem.srcAddr == pkt->getTransmitterAddress()) {
-            if(elem.lastSeqNoProcessed > pkt->getSequenceNumber()) return true;
+            if(elem.lastSeqNoProcessed > pkt->getSequenceNumber()) {
+                printf("Duplicate packet! src %d sn %d\n", elem.srcAddr.getInt(), pkt->getSequenceNumber());
+                return true;
+            }
         }
     }
     return false;
@@ -209,26 +236,103 @@ void NetworkServerApp::updateKnownGateways(Packet* pkt)
         knownGW newGW;
         newGW.ipAddr = gwAddress;
         int gwid = (gwAddress.toIpv4().getDByte(3)-9)/4;
-        newGW.historyRSSI = new cOutVector;
-
         char tmp[100];
-        sprintf(tmp, "RSSI GW %d", gwid);
+        newGW.historyRSSI = new cOutVector;
+        sprintf(tmp, "Node RSSI GW %d", gwid);
         newGW.historyRSSI->setName(tmp);
         newGW.historySNIR = new cOutVector;
-        sprintf(tmp, "SNIR GW %d", gwid);
+        sprintf(tmp, "Node SNIR GW %d", gwid);
         newGW.historySNIR->setName(tmp);
         newGW.receivedSN = new cOutVector;
-        sprintf(tmp, "SNs GW %d", gwid);
+        sprintf(tmp, "Node SNs GW %d", gwid);
         newGW.receivedSN->setName(tmp);
         newGW.nodeX = new cOutVector;
-        sprintf(tmp, "CoordXs GW %d", gwid);
+        sprintf(tmp, "Node CoordXs GW %d", gwid);
         newGW.nodeX->setName(tmp);
         newGW.nodeY = new cOutVector;
-        sprintf(tmp, "CoordYs GW %d", gwid);
+        sprintf(tmp, "Node CoordYs GW %d", gwid);
         newGW.nodeY->setName(tmp);
         newGW.deltaT = new cOutVector;
-        sprintf(tmp, "DeltaT GW %d", gwid);
+        sprintf(tmp, "Node DeltaT GW %d", gwid);
         newGW.deltaT->setName(tmp);
+
+        newGW.GW0historyRSSI = new cOutVector;
+        sprintf(tmp, "GW0 RSSI GW %d", gwid);
+        newGW.GW0historyRSSI->setName(tmp);
+        newGW.GW0historySNIR = new cOutVector;
+        sprintf(tmp, "GW0 SNIR GW %d", gwid);
+        newGW.GW0historySNIR->setName(tmp);
+        newGW.GW0receivedSN = new cOutVector;
+        sprintf(tmp, "GW0 SNs GW %d", gwid);
+        newGW.GW0receivedSN->setName(tmp);
+        newGW.GW0nodeX = new cOutVector;
+        sprintf(tmp, "GW0 CoordXs GW %d", gwid);
+        newGW.GW0nodeX->setName(tmp);
+        newGW.GW0nodeY = new cOutVector;
+        sprintf(tmp, "GW0 CoordYs GW %d", gwid);
+        newGW.GW0nodeY->setName(tmp);
+        newGW.GW0deltaT = new cOutVector;
+        sprintf(tmp, "GW0 DeltaT GW %d", gwid);
+        newGW.GW0deltaT->setName(tmp);
+
+        newGW.GW1historyRSSI = new cOutVector;
+        sprintf(tmp, "GW1 RSSI GW %d", gwid);
+        newGW.GW1historyRSSI->setName(tmp);
+        newGW.GW1historySNIR = new cOutVector;
+        sprintf(tmp, "GW1 SNIR GW %d", gwid);
+        newGW.GW1historySNIR->setName(tmp);
+        newGW.GW1receivedSN = new cOutVector;
+        sprintf(tmp, "GW1 SNs GW %d", gwid);
+        newGW.GW1receivedSN->setName(tmp);
+        newGW.GW1nodeX = new cOutVector;
+        sprintf(tmp, "GW1 CoordXs GW %d", gwid);
+        newGW.GW1nodeX->setName(tmp);
+        newGW.GW1nodeY = new cOutVector;
+        sprintf(tmp, "GW1 CoordYs GW %d", gwid);
+        newGW.GW1nodeY->setName(tmp);
+        newGW.GW1deltaT = new cOutVector;
+        sprintf(tmp, "GW1 DeltaT GW %d", gwid);
+        newGW.GW1deltaT->setName(tmp);
+
+        newGW.GW2historyRSSI = new cOutVector;
+        sprintf(tmp, "GW2 RSSI GW %d", gwid);
+        newGW.GW2historyRSSI->setName(tmp);
+        newGW.GW2historySNIR = new cOutVector;
+        sprintf(tmp, "GW2 SNIR GW %d", gwid);
+        newGW.GW2historySNIR->setName(tmp);
+        newGW.GW2receivedSN = new cOutVector;
+        sprintf(tmp, "GW2 SNs GW %d", gwid);
+        newGW.GW2receivedSN->setName(tmp);
+        newGW.GW2nodeX = new cOutVector;
+        sprintf(tmp, "GW2 CoordXs GW %d", gwid);
+        newGW.GW2nodeX->setName(tmp);
+        newGW.GW2nodeY = new cOutVector;
+        sprintf(tmp, "GW2 CoordYs GW %d", gwid);
+        newGW.GW2nodeY->setName(tmp);
+        newGW.GW2deltaT = new cOutVector;
+        sprintf(tmp, "GW2 DeltaT GW %d", gwid);
+        newGW.GW2deltaT->setName(tmp);
+
+        newGW.GW3historyRSSI = new cOutVector;
+        sprintf(tmp, "GW3 RSSI GW %d", gwid);
+        newGW.GW3historyRSSI->setName(tmp);
+        newGW.GW3historySNIR = new cOutVector;
+        sprintf(tmp, "GW3 SNIR GW %d", gwid);
+        newGW.GW3historySNIR->setName(tmp);
+        newGW.GW3receivedSN = new cOutVector;
+        sprintf(tmp, "GW3 SNs GW %d", gwid);
+        newGW.GW3receivedSN->setName(tmp);
+        newGW.GW3nodeX = new cOutVector;
+        sprintf(tmp, "GW3 CoordXs GW %d", gwid);
+        newGW.GW3nodeX->setName(tmp);
+        newGW.GW3nodeY = new cOutVector;
+        sprintf(tmp, "GW3 CoordYs GW %d", gwid);
+        newGW.GW3nodeY->setName(tmp);
+        newGW.GW3deltaT = new cOutVector;
+        sprintf(tmp, "GW3 DeltaT GW %d", gwid);
+        newGW.GW3deltaT->setName(tmp);
+
+
         knownGateways.push_back(newGW);
     }
 }
@@ -252,6 +356,7 @@ void NetworkServerApp::updateKnownNodes(Packet* pkt)
     {
         knownNode newNode;
         newNode.srcAddr= frame->getTransmitterAddress();
+        printf("New Node! src %d\n", newNode.srcAddr.getInt());
         newNode.lastSeqNoProcessed = frame->getSequenceNumber();
         newNode.framesFromLastADRCommand = 0;
         newNode.numberOfSentADRPackets = 0;
@@ -347,18 +452,70 @@ void NetworkServerApp::processScheduledPacket(cMessage* selfMsg)
             {
                 const L3Address& gwAddress = std::get<0>(receivedPackets[i].possibleGateways[j]);
 
+                int nodeId = frameAux->getTransmitterAddress().getInt();
+                if (!finished) {
+                    if (nodeId == 1) {
+                        printf("node ");
+                    } else {
+                        printf("GW %d ", nodeId-2);
+                    }
+                    printf("sn %d from %d rssi %lf coord (%lf, %lf)\n", frameAux->getSequenceNumber(), (std::get<0>(receivedPackets[i].possibleGateways[j]).toIpv4().getDByte(3)-9)/4, std::get<2>(receivedPackets[i].possibleGateways[j]), coords->x, coords->y);
+                }
+
                 for(uint k=0; k < knownGateways.size(); k++) {
-                    if (knownGateways[k].ipAddr == gwAddress && !(coords->x < 0.1 && coords->y > 1999.9)) {
-                        knownGateways[k].receivedSN->record(frameAux->getSequenceNumber());
-                        knownGateways[k].nodeX->record(coords->x);
-                        knownGateways[k].nodeY->record(coords->y);
-                        knownGateways[k].historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
-                        knownGateways[k].historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
-                        knownGateways[k].deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
+//                    if (knownGateways[k].ipAddr == gwAddress && !(coords->x < 0.1 && coords->y > 999.9)) {
+                    if (knownGateways[k].ipAddr == gwAddress && !finished) {
+                        switch(nodeId) {
+                            case 1:
+                                if (!(coords->x < 0.1 && coords->y > 999.9)) {
+                                    knownGateways[k].receivedSN->record(frameAux->getSequenceNumber());
+                                    knownGateways[k].nodeX->record(coords->x);
+                                    knownGateways[k].nodeY->record(coords->y);
+                                    knownGateways[k].historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
+                                    knownGateways[k].historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
+                                    knownGateways[k].deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
+                                } else {
+                                    finished = true;
+                                }
+                            break;
+                            case 2:
+                            knownGateways[k].GW0receivedSN->record(frameAux->getSequenceNumber());
+                            knownGateways[k].GW0nodeX->record(coords->x);
+                            knownGateways[k].GW0nodeY->record(coords->y);
+                            knownGateways[k].GW0historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
+                            knownGateways[k].GW0historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
+                            knownGateways[k].GW0deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
+                            break;
+                            case 3:
+                            knownGateways[k].GW1receivedSN->record(frameAux->getSequenceNumber());
+                            knownGateways[k].GW1nodeX->record(coords->x);
+                            knownGateways[k].GW1nodeY->record(coords->y);
+                            knownGateways[k].GW1historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
+                            knownGateways[k].GW1historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
+                            knownGateways[k].GW1deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
+                            break;
+                            case 4:
+                            knownGateways[k].GW2receivedSN->record(frameAux->getSequenceNumber());
+                            knownGateways[k].GW2nodeX->record(coords->x);
+                            knownGateways[k].GW2nodeY->record(coords->y);
+                            knownGateways[k].GW2historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
+                            knownGateways[k].GW2historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
+                            knownGateways[k].GW2deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
+                            break;
+                            case 5:
+                            knownGateways[k].GW3receivedSN->record(frameAux->getSequenceNumber());
+                            knownGateways[k].GW3nodeX->record(coords->x);
+                            knownGateways[k].GW3nodeY->record(coords->y);
+                            knownGateways[k].GW3historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
+                            knownGateways[k].GW3historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
+                            knownGateways[k].GW3deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
+                            break;
+
+
+                        }
                         break;
                     }
                 }
-                printf("sn %d from %d rssi %lf coord (%lf, %lf)\n", frameAux->getSequenceNumber(), (std::get<0>(receivedPackets[i].possibleGateways[j]).toIpv4().getDByte(3)-9)/4, std::get<2>(receivedPackets[i].possibleGateways[j]), coords->x, coords->y);
 
                 if(SNIRinGW < std::get<1>(receivedPackets[i].possibleGateways[j]))
                 {

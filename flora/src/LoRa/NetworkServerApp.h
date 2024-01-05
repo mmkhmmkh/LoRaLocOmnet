@@ -57,6 +57,34 @@ public:
     cOutVector *nodeX;
     cOutVector *nodeY;
     cOutVector *deltaT;
+
+    cOutVector *GW0historySNIR;
+    cOutVector *GW0historyRSSI;
+    cOutVector *GW0receivedSN;
+    cOutVector *GW0nodeX;
+    cOutVector *GW0nodeY;
+    cOutVector *GW0deltaT;
+
+    cOutVector *GW1historySNIR;
+    cOutVector *GW1historyRSSI;
+    cOutVector *GW1receivedSN;
+    cOutVector *GW1nodeX;
+    cOutVector *GW1nodeY;
+    cOutVector *GW1deltaT;
+
+    cOutVector *GW2historySNIR;
+    cOutVector *GW2historyRSSI;
+    cOutVector *GW2receivedSN;
+    cOutVector *GW2nodeX;
+    cOutVector *GW2nodeY;
+    cOutVector *GW2deltaT;
+
+    cOutVector *GW3historySNIR;
+    cOutVector *GW3historyRSSI;
+    cOutVector *GW3receivedSN;
+    cOutVector *GW3nodeX;
+    cOutVector *GW3nodeY;
+    cOutVector *GW3deltaT;
 };
 
 class receivedPacket
@@ -108,6 +136,7 @@ class NetworkServerApp : public cSimpleModule, cListener
     int counterOfSentPacketsFromNodesPerSF[6];
     int counterUniqueReceivedPackets = 0;
     int counterUniqueReceivedPacketsPerSF[6];
+    bool finished = false;
 };
 } //namespace inet
 #endif

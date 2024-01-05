@@ -14,15 +14,13 @@ import inet.node.ethernet.Eth1G;
 network LoRaLocSimple
 {
     parameters:
-        int numberOfNodes = default(1);
+        int numberOfNodes = default(5);
         int numberOfGateways = default(4);
         int networkSizeX = default(5000);
         int networkSizeY = default(5000);
         @display("bgb=562,417");
     submodules:
-        loRaNodes[numberOfNodes]: LoRaNode {
-            @display("p=2000,2000");
-        }
+        loRaNodes[numberOfNodes]: LoRaNode;
         loRaGW[numberOfGateways]: LoRaGW;
         LoRaMedium: LoRaMedium {
             @display("p=424,75");
