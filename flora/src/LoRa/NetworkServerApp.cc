@@ -467,7 +467,7 @@ void NetworkServerApp::processScheduledPacket(cMessage* selfMsg)
                     if (knownGateways[k].ipAddr == gwAddress && !finished) {
                         switch(nodeId) {
                             case 1:
-                                if (!(coords->x < 0.1 && coords->y > 999.9)) {
+                                if (!(coords->x < -99.9 && coords->y > 1099.9)) {
                                     knownGateways[k].receivedSN->record(frameAux->getSequenceNumber());
                                     knownGateways[k].nodeX->record(coords->x);
                                     knownGateways[k].nodeY->record(coords->y);

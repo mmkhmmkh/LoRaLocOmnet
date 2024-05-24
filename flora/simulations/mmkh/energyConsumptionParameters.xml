@@ -18,6 +18,9 @@
 		<txSupplyCurrent txPower="12" supplyCurrent="34"/>
 		<txSupplyCurrent txPower="13" supplyCurrent="35"/>
 		<txSupplyCurrent txPower="14" supplyCurrent="36"/>
+		<txSupplyCurrent txPower="17" supplyCurrent="37"/>
+		<txSupplyCurrent txPower="18" supplyCurrent="39"/>
+		<txSupplyCurrent txPower="19" supplyCurrent="40"/>
 		<txSupplyCurrent txPower="20" supplyCurrent="42"/>
 	</txSupplyCurrents>
 </root>
