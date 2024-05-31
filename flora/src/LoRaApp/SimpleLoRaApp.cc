@@ -14,7 +14,7 @@
 // 
 
 #include "SimpleLoRaApp.h"
-#include "inet/mobility/single/TurtleMobility.h"
+#include "LoRaLocMobility.h"
 #include "../LoRa/LoRaTagInfo_m.h"
 #include "inet/common/packet/Packet.h"
 
@@ -22,6 +22,9 @@
 namespace flora {
 
 Define_Module(SimpleLoRaApp);
+
+
+double TPs[] ={20.0,20.0,18.0,18.0};
 
 void SimpleLoRaApp::initialize(int stage)
 {
@@ -74,6 +77,7 @@ void SimpleLoRaApp::initialize(int stage)
 //        loRaUseHeader = par("initialUseHeader");
         loRaRadio->loRaUseHeader = par("initialUseHeader");
         evaluateADRinNode = par("evaluateADRinNode");
+        staticNode = par("staticNode");
         sfVector.setName("SF Vector");
         tpVector.setName("TP Vector");
         positionXVector.setName("Position X Vector");
@@ -98,11 +102,6 @@ std::pair<double,double> SimpleLoRaApp::generateUniformCircleCoordinates(double 
 
 void SimpleLoRaApp::finish()
 {
-    cModule *host = getContainingNode(this);
-    TurtleMobility *mobility = check_and_cast<TurtleMobility *>(host->getSubmodule("mobility"));
-    Coord coord = mobility->getCurrentPosition();
-    recordScalar("positionX", coord.x);
-    recordScalar("positionY", coord.y);
     recordScalar("finalTP", getTP());
     recordScalar("finalSF", getSF());
     recordScalar("sentPackets", sentPackets);
@@ -128,12 +127,13 @@ void SimpleLoRaApp::handleMessage(cMessage *msg)
                 if(loRaSF == 10) time = 49.3568;
                 if(loRaSF == 11) time = 85.6064;
                 if(loRaSF == 12) time = 171.2128;
-                do {
-                    timeToNextPacket = par("timeToNextPacket");
-                    // if(timeToNextPacket < 3) error("Time to next packet must be grater than 3");
-                } while(timeToNextPacket <= time);
+//                do {
+//                    timeToNextPacket = par("timeToNextPacket");
+//                    // if(timeToNextPacket < 3) error("Time to next packet must be grater than 3");
+//                } while(timeToNextPacket <= time);
+                timeToNextPacket = 2 * time;
                 sendMeasurements = new cMessage("sendMeasurements");
-                scheduleAt(simTime() + timeToNextPacket + time, sendMeasurements);
+                scheduleAt(simTime() + timeToNextPacket, sendMeasurements);
             }
         }
     }
@@ -203,13 +203,58 @@ void SimpleLoRaApp::sendJoinRequest()
     }
 
 
+    cModule *host = getContainingNode(this);
+    LoRaLocMobility *mobility = check_and_cast<LoRaLocMobility *>(host->getSubmodule("mobility"));
+    Coord coord = mobility->getPosition();
+    // Setup TP
+    // calculate distances
+    double *d = new double[4];
+    d[0] = sqrt(pow(coord.x - 2000.0, 2) + pow(coord.y - 2000.0, 2));
+    d[1] = sqrt(pow(coord.x - 3000.0, 2) + pow(coord.y - 2000.0, 2));
+    d[2] = sqrt(pow(coord.x - 2000.0, 2) + pow(coord.y - 3000.0, 2));
+    d[3] = sqrt(pow(coord.x - 3000.0, 2) + pow(coord.y - 3000.0, 2));
+    bool isTPSet = false;
+    for (int i = 0; i < 4; i++) {
+        if (d[i] < 1.0) {
+            setTP(TPs[i]);
+            isTPSet = true;
+            break;
+        }
+    }
+    if (!isTPSet) {
+        if(d[0] >= d[1] && d[0] >= d[2] && d[0] >= d[3]) {
+            d[1] = d[0] / d[1];
+            d[2] = d[0] / d[2];
+            d[3] = d[0] / d[3];
+            setTP((TPs[1]*d[1] + TPs[2]*d[2] + TPs[3]*d[3])/(d[1]+d[2]+d[3]));
+        } else if (d[1] >= d[0] && d[1] >= d[2] && d[1] >= d[3]) {
+            d[0] = d[1] / d[0];
+            d[2] = d[1] / d[2];
+            d[3] = d[1] / d[3];
+            setTP((TPs[0]*d[0] + TPs[2]*d[2] + TPs[3]*d[3])/(d[0]+d[2]+d[3]));
+        } else if (d[2] >= d[0] && d[2] >= d[1] && d[2] >= d[3]) {
+            d[1] = d[2] / d[1];
+            d[0] = d[2] / d[0];
+            d[3] = d[2] / d[3];
+            setTP((TPs[1]*d[1] + TPs[0]*d[0] + TPs[3]*d[3])/(d[1]+d[0]+d[3]));
+        } else {
+            d[1] = d[3] / d[1];
+            d[2] = d[3] / d[2];
+            d[0] = d[3] / d[0];
+            setTP((TPs[1]*d[1] + TPs[2]*d[2] + TPs[0]*d[0])/(d[1]+d[2]+d[0]));
+        }
+    }
+
+    delete[] d;
+
+
     auto loraTag = pktRequest->addTagIfAbsent<LoRaTag>();
     loraTag->setBandwidth(getBW());
     loraTag->setCenterFrequency(getCF());
     loraTag->setSpreadFactor(getSF());
     loraTag->setCodeRendundance(getCR());
     loraTag->setPower(mW(math::dBmW2mW(getTP())));
-
+    printf("tp %lf\n", getTP());
     //add LoRa control info
   /*  LoRaMacControlInfo *cInfo = new LoRaMacControlInfo();
     cInfo->setLoRaTP(loRaTP);
@@ -221,9 +266,6 @@ void SimpleLoRaApp::sendJoinRequest()
 
 //    sfVector.record(getSF());
 //    tpVector.record(getTP());
-    cModule *host = getContainingNode(this);
-    TurtleMobility *mobility = check_and_cast<TurtleMobility *>(host->getSubmodule("mobility"));
-    Coord coord = mobility->getCurrentPosition();
 //    positionXVector.record(coord.x - 2000.0);
 //    positionYVector.record(coord.y - 2000.0);
     payload->setX(coord.x - 2000.0);
@@ -245,7 +287,12 @@ void SimpleLoRaApp::sendJoinRequest()
         }
     }
     emit(LoRa_AppPacketSent, getSF());
+    if (!staticNode) {
+        // Let's move!
+        mobility->updatePosition();
+    }
 }
+
 
 void SimpleLoRaApp::increaseSFIfPossible()
 {
@@ -261,7 +308,7 @@ int SimpleLoRaApp::getSF() {
     return loRaRadio->loRaSF;
 }
 
-void SimpleLoRaApp::setTP(int TP) {
+void SimpleLoRaApp::setTP(double TP) {
     loRaRadio->loRaTP = TP;
 }
 
