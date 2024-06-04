@@ -21,7 +21,6 @@
 #include "inet/transportlayer/contract/udp/UdpControlInfo_m.h"
 #include "inet/networklayer/common/L3AddressResolver.h"
 #include "inet/common/ModuleAccess.h"
-#include "inet/common/geometry/common/Coord.h"
 #include "inet/applications/base/ApplicationPacket_m.h"
 
 #include "inet/networklayer/common/L3Tools.h"
@@ -34,7 +33,6 @@ Define_Module(NetworkServerApp);
 
 void NetworkServerApp::initialize(int stage)
 {
-    printf("Inittttt!\n");
     if (stage == 0) {
         ASSERT(recvdPackets.size()==0);
         LoRa_ServerPacketReceived = registerSignal("LoRa_ServerPacketReceived");
@@ -77,7 +75,6 @@ void NetworkServerApp::handleMessage(cMessage *msg)
         {
             totalReceivedPackets++;
         }
-        updateKnownGateways(pkt);
         updateKnownNodes(pkt);
         processLoraMACPacket(pkt);
     }
@@ -89,12 +86,11 @@ void NetworkServerApp::handleMessage(cMessage *msg)
 void NetworkServerApp::processLoraMACPacket(Packet *pk)
 {
     const auto & frame = pk->peekAtFront<LoRaMacFrame>();
-//    if(isPacketProcessed(frame))
-//    {
-//        printf("packet was processed.\n");
-//        delete pk;
-//        return;
-//    }
+    if(isPacketProcessed(frame))
+    {
+        delete pk;
+        return;
+    }
     addPktToProcessingTable(pk);
 }
 
@@ -109,46 +105,13 @@ void NetworkServerApp::finish()
         delete knownNodes[i].calculatedSNRmargin;
         recordScalar("Send ADR for node", knownNodes[i].numberOfSentADRPackets);
     }
-    for(uint i=0;i<knownGateways.size();i++)
-        {
-            delete knownGateways[i].historySNIR;
-            delete knownGateways[i].historyRSSI;
-            delete knownGateways[i].receivedSN;
-            delete knownGateways[i].nodeX;
-            delete knownGateways[i].nodeY;
-            delete knownGateways[i].deltaT;
-            delete knownGateways[i].GW0historySNIR;
-            delete knownGateways[i].GW0historyRSSI;
-            delete knownGateways[i].GW0receivedSN;
-            delete knownGateways[i].GW0nodeX;
-            delete knownGateways[i].GW0nodeY;
-            delete knownGateways[i].GW0deltaT;
-            delete knownGateways[i].GW1historySNIR;
-            delete knownGateways[i].GW1historyRSSI;
-            delete knownGateways[i].GW1receivedSN;
-            delete knownGateways[i].GW1nodeX;
-            delete knownGateways[i].GW1nodeY;
-            delete knownGateways[i].GW1deltaT;
-            delete knownGateways[i].GW2historySNIR;
-            delete knownGateways[i].GW2historyRSSI;
-            delete knownGateways[i].GW2receivedSN;
-            delete knownGateways[i].GW2nodeX;
-            delete knownGateways[i].GW2nodeY;
-            delete knownGateways[i].GW2deltaT;
-            delete knownGateways[i].GW3historySNIR;
-            delete knownGateways[i].GW3historyRSSI;
-            delete knownGateways[i].GW3receivedSN;
-            delete knownGateways[i].GW3nodeX;
-            delete knownGateways[i].GW3nodeY;
-            delete knownGateways[i].GW3deltaT;
-        }
     for (std::map<int,int>::iterator it=numReceivedPerNode.begin(); it != numReceivedPerNode.end(); ++it)
     {
         const std::string stringScalar = "numReceivedFromNode " + std::to_string(it->first);
         recordScalar(stringScalar.c_str(), it->second);
     }
 
-//    receivedRSSI.recordAs("receivedRSSI");
+    receivedRSSI.recordAs("receivedRSSI");
     recordScalar("totalReceivedPackets", totalReceivedPackets);
 
     while(!receivedPackets.empty()) {
@@ -162,7 +125,6 @@ void NetworkServerApp::finish()
         receivedPackets.pop_back();
     }
 
-    knownGateways.clear();
     knownNodes.clear();
     receivedPackets.clear();
 
@@ -205,136 +167,12 @@ void NetworkServerApp::finish()
 
 bool NetworkServerApp::isPacketProcessed(const Ptr<const LoRaMacFrame> &pkt)
 {
-
     for(const auto & elem : knownNodes) {
         if(elem.srcAddr == pkt->getTransmitterAddress()) {
-            if(elem.lastSeqNoProcessed > pkt->getSequenceNumber()) {
-                printf("Duplicate packet! src %d sn %d\n", elem.srcAddr.getInt(), pkt->getSequenceNumber());
-                return true;
-            }
+            if(elem.lastSeqNoProcessed > pkt->getSequenceNumber()) return true;
         }
     }
     return false;
-}
-
-
-void NetworkServerApp::updateKnownGateways(Packet* pkt)
-{
-    const auto& networkHeader = getNetworkProtocolHeader(pkt);
-    const L3Address& gwAddress = networkHeader->getSourceAddress();
-    bool gwExist = false;
-    for(auto &elem : knownGateways)
-    {
-        if(elem.ipAddr == gwAddress) {
-            gwExist = true;
-            break;
-        }
-    }
-
-    if(gwExist == false)
-    {
-        knownGW newGW;
-        newGW.ipAddr = gwAddress;
-        int gwid = (gwAddress.toIpv4().getDByte(3)-9)/4;
-        char tmp[100];
-        newGW.historyRSSI = new cOutVector;
-        sprintf(tmp, "Node RSSI GW %d", gwid);
-        newGW.historyRSSI->setName(tmp);
-        newGW.historySNIR = new cOutVector;
-        sprintf(tmp, "Node SNIR GW %d", gwid);
-        newGW.historySNIR->setName(tmp);
-        newGW.receivedSN = new cOutVector;
-        sprintf(tmp, "Node SNs GW %d", gwid);
-        newGW.receivedSN->setName(tmp);
-        newGW.nodeX = new cOutVector;
-        sprintf(tmp, "Node CoordXs GW %d", gwid);
-        newGW.nodeX->setName(tmp);
-        newGW.nodeY = new cOutVector;
-        sprintf(tmp, "Node CoordYs GW %d", gwid);
-        newGW.nodeY->setName(tmp);
-        newGW.deltaT = new cOutVector;
-        sprintf(tmp, "Node DeltaT GW %d", gwid);
-        newGW.deltaT->setName(tmp);
-
-        newGW.GW0historyRSSI = new cOutVector;
-        sprintf(tmp, "GW0 RSSI GW %d", gwid);
-        newGW.GW0historyRSSI->setName(tmp);
-        newGW.GW0historySNIR = new cOutVector;
-        sprintf(tmp, "GW0 SNIR GW %d", gwid);
-        newGW.GW0historySNIR->setName(tmp);
-        newGW.GW0receivedSN = new cOutVector;
-        sprintf(tmp, "GW0 SNs GW %d", gwid);
-        newGW.GW0receivedSN->setName(tmp);
-        newGW.GW0nodeX = new cOutVector;
-        sprintf(tmp, "GW0 CoordXs GW %d", gwid);
-        newGW.GW0nodeX->setName(tmp);
-        newGW.GW0nodeY = new cOutVector;
-        sprintf(tmp, "GW0 CoordYs GW %d", gwid);
-        newGW.GW0nodeY->setName(tmp);
-        newGW.GW0deltaT = new cOutVector;
-        sprintf(tmp, "GW0 DeltaT GW %d", gwid);
-        newGW.GW0deltaT->setName(tmp);
-
-        newGW.GW1historyRSSI = new cOutVector;
-        sprintf(tmp, "GW1 RSSI GW %d", gwid);
-        newGW.GW1historyRSSI->setName(tmp);
-        newGW.GW1historySNIR = new cOutVector;
-        sprintf(tmp, "GW1 SNIR GW %d", gwid);
-        newGW.GW1historySNIR->setName(tmp);
-        newGW.GW1receivedSN = new cOutVector;
-        sprintf(tmp, "GW1 SNs GW %d", gwid);
-        newGW.GW1receivedSN->setName(tmp);
-        newGW.GW1nodeX = new cOutVector;
-        sprintf(tmp, "GW1 CoordXs GW %d", gwid);
-        newGW.GW1nodeX->setName(tmp);
-        newGW.GW1nodeY = new cOutVector;
-        sprintf(tmp, "GW1 CoordYs GW %d", gwid);
-        newGW.GW1nodeY->setName(tmp);
-        newGW.GW1deltaT = new cOutVector;
-        sprintf(tmp, "GW1 DeltaT GW %d", gwid);
-        newGW.GW1deltaT->setName(tmp);
-
-        newGW.GW2historyRSSI = new cOutVector;
-        sprintf(tmp, "GW2 RSSI GW %d", gwid);
-        newGW.GW2historyRSSI->setName(tmp);
-        newGW.GW2historySNIR = new cOutVector;
-        sprintf(tmp, "GW2 SNIR GW %d", gwid);
-        newGW.GW2historySNIR->setName(tmp);
-        newGW.GW2receivedSN = new cOutVector;
-        sprintf(tmp, "GW2 SNs GW %d", gwid);
-        newGW.GW2receivedSN->setName(tmp);
-        newGW.GW2nodeX = new cOutVector;
-        sprintf(tmp, "GW2 CoordXs GW %d", gwid);
-        newGW.GW2nodeX->setName(tmp);
-        newGW.GW2nodeY = new cOutVector;
-        sprintf(tmp, "GW2 CoordYs GW %d", gwid);
-        newGW.GW2nodeY->setName(tmp);
-        newGW.GW2deltaT = new cOutVector;
-        sprintf(tmp, "GW2 DeltaT GW %d", gwid);
-        newGW.GW2deltaT->setName(tmp);
-
-        newGW.GW3historyRSSI = new cOutVector;
-        sprintf(tmp, "GW3 RSSI GW %d", gwid);
-        newGW.GW3historyRSSI->setName(tmp);
-        newGW.GW3historySNIR = new cOutVector;
-        sprintf(tmp, "GW3 SNIR GW %d", gwid);
-        newGW.GW3historySNIR->setName(tmp);
-        newGW.GW3receivedSN = new cOutVector;
-        sprintf(tmp, "GW3 SNs GW %d", gwid);
-        newGW.GW3receivedSN->setName(tmp);
-        newGW.GW3nodeX = new cOutVector;
-        sprintf(tmp, "GW3 CoordXs GW %d", gwid);
-        newGW.GW3nodeX->setName(tmp);
-        newGW.GW3nodeY = new cOutVector;
-        sprintf(tmp, "GW3 CoordYs GW %d", gwid);
-        newGW.GW3nodeY->setName(tmp);
-        newGW.GW3deltaT = new cOutVector;
-        sprintf(tmp, "GW3 DeltaT GW %d", gwid);
-        newGW.GW3deltaT->setName(tmp);
-
-
-        knownGateways.push_back(newGW);
-    }
 }
 
 void NetworkServerApp::updateKnownNodes(Packet* pkt)
@@ -356,7 +194,6 @@ void NetworkServerApp::updateKnownNodes(Packet* pkt)
     {
         knownNode newNode;
         newNode.srcAddr= frame->getTransmitterAddress();
-        printf("New Node! src %d\n", newNode.srcAddr.getInt());
         newNode.lastSeqNoProcessed = frame->getSequenceNumber();
         newNode.framesFromLastADRCommand = 0;
         newNode.numberOfSentADRPackets = 0;
@@ -387,8 +224,7 @@ void NetworkServerApp::addPktToProcessingTable(Packet* pkt)
             packetExists = true;
             const auto& networkHeader = getNetworkProtocolHeader(pkt);
             const L3Address& gwAddress = networkHeader->getSourceAddress();
-//            printf("from %s\n", gwAddress.str().c_str());
-            elem.possibleGateways.emplace_back(gwAddress, frame->getSNIR(), frame->getRSSI(), simTime().raw());
+            elem.possibleGateways.emplace_back(gwAddress, frame->getSNIR(), frame->getRSSI());
             delete pkt;
             break;
         }
@@ -401,8 +237,7 @@ void NetworkServerApp::addPktToProcessingTable(Packet* pkt)
         rcvPkt.endOfWaiting->setControlInfo(pkt);
         const auto& networkHeader = getNetworkProtocolHeader(pkt);
         const L3Address& gwAddress = networkHeader->getSourceAddress();
-//        printf("sn %d from %d\n", frame->getSequenceNumber(), (gwAddress.toIpv4().getDByte(3)-9)/4);
-        rcvPkt.possibleGateways.emplace_back(gwAddress, frame->getSNIR(), frame->getRSSI(), simTime().raw());
+        rcvPkt.possibleGateways.emplace_back(gwAddress, frame->getSNIR(), frame->getRSSI());
         EV << "Added " << gwAddress << " " << frame->getSNIR() << " " << frame->getRSSI() << endl;
         scheduleAt(simTime() + 1.2, rcvPkt.endOfWaiting);
         receivedPackets.push_back(rcvPkt);
@@ -436,87 +271,8 @@ void NetworkServerApp::processScheduledPacket(cMessage* selfMsg)
                 numReceivedPerNode[nodeNumber-1] = 1;
             }
 
-            const auto rcvAppPacket = getNodeData(receivedPackets[i].rcvdPacket);
-            Coord* coords = new Coord(rcvAppPacket->getX(), rcvAppPacket->getY(), 0);
-            int64_t arrival = rcvAppPacket->getCreationTime();
-
-            int64_t minDeltaT = INT64_MAX;
-            for(uint j=0;j<receivedPackets[i].possibleGateways.size();j++) {
-                int64_t deltaT = std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival;
-                if (deltaT < minDeltaT) {
-                    minDeltaT = deltaT;
-                }
-            }
-
             for(uint j=0;j<receivedPackets[i].possibleGateways.size();j++)
             {
-                const L3Address& gwAddress = std::get<0>(receivedPackets[i].possibleGateways[j]);
-
-                int nodeId = frameAux->getTransmitterAddress().getInt();
-                if (!finished) {
-                    if (nodeId == 1) {
-                        printf("node ");
-                    } else {
-                        printf("GW %d ", nodeId-2);
-                    }
-                    printf("sn %d from %d rssi %lf coord (%lf, %lf)\n", frameAux->getSequenceNumber(), (std::get<0>(receivedPackets[i].possibleGateways[j]).toIpv4().getDByte(3)-9)/4, std::get<2>(receivedPackets[i].possibleGateways[j]), coords->x, coords->y);
-                }
-
-                for(uint k=0; k < knownGateways.size(); k++) {
-//                    if (knownGateways[k].ipAddr == gwAddress && !(coords->x < 0.1 && coords->y > 999.9)) {
-                    if (knownGateways[k].ipAddr == gwAddress && !finished) {
-                        switch(nodeId) {
-                            case 1:
-                                if (!(coords->x > 1099.9 && coords->y > 1099.9)) {
-                                    knownGateways[k].receivedSN->record(frameAux->getSequenceNumber());
-                                    knownGateways[k].nodeX->record(coords->x);
-                                    knownGateways[k].nodeY->record(coords->y);
-                                    knownGateways[k].historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
-                                    knownGateways[k].historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
-                                    knownGateways[k].deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
-                                } else {
-                                    finished = true;
-                                }
-                            break;
-                            case 2:
-                            knownGateways[k].GW0receivedSN->record(frameAux->getSequenceNumber());
-                            knownGateways[k].GW0nodeX->record(coords->x);
-                            knownGateways[k].GW0nodeY->record(coords->y);
-                            knownGateways[k].GW0historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
-                            knownGateways[k].GW0historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
-                            knownGateways[k].GW0deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
-                            break;
-                            case 3:
-                            knownGateways[k].GW1receivedSN->record(frameAux->getSequenceNumber());
-                            knownGateways[k].GW1nodeX->record(coords->x);
-                            knownGateways[k].GW1nodeY->record(coords->y);
-                            knownGateways[k].GW1historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
-                            knownGateways[k].GW1historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
-                            knownGateways[k].GW1deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
-                            break;
-                            case 4:
-                            knownGateways[k].GW2receivedSN->record(frameAux->getSequenceNumber());
-                            knownGateways[k].GW2nodeX->record(coords->x);
-                            knownGateways[k].GW2nodeY->record(coords->y);
-                            knownGateways[k].GW2historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
-                            knownGateways[k].GW2historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
-                            knownGateways[k].GW2deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
-                            break;
-                            case 5:
-                            knownGateways[k].GW3receivedSN->record(frameAux->getSequenceNumber());
-                            knownGateways[k].GW3nodeX->record(coords->x);
-                            knownGateways[k].GW3nodeY->record(coords->y);
-                            knownGateways[k].GW3historyRSSI->record(std::get<2>(receivedPackets[i].possibleGateways[j]));
-                            knownGateways[k].GW3historySNIR->record(std::get<1>(receivedPackets[i].possibleGateways[j]));
-                            knownGateways[k].GW3deltaT->record(std::get<3>(receivedPackets[i].possibleGateways[j]) - arrival - minDeltaT);
-                            break;
-
-
-                        }
-                        break;
-                    }
-                }
-
                 if(SNIRinGW < std::get<1>(receivedPackets[i].possibleGateways[j]))
                 {
                     RSSIinGW = std::get<2>(receivedPackets[i].possibleGateways[j]);
@@ -531,160 +287,152 @@ void NetworkServerApp::processScheduledPacket(cMessage* selfMsg)
     {
         counterUniqueReceivedPackets++;
     }
-//    receivedRSSI.collect(frame->getRSSI());
-//    if(evaluateADRinServer)
-//    {
-//        evaluateADR(pkt, pickedGateway, SNIRinGW, RSSIinGW);
-//    }
+    receivedRSSI.collect(frame->getRSSI());
+    if(evaluateADRinServer)
+    {
+        evaluateADR(pkt, pickedGateway, SNIRinGW, RSSIinGW);
+    }
     delete receivedPackets[packetNumber].rcvdPacket;
     delete selfMsg;
     receivedPackets.erase(receivedPackets.begin()+packetNumber);
 }
 
-
-const Ptr<const LoRaAppPacket> NetworkServerApp::getNodeData(Packet* pkt)
+void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double SNIRinGW, double RSSIinGW)
 {
+    bool sendADR = false;
+    bool sendADRAckRep = false;
+    double SNRm; //needed for ADR
+    int nodeIndex;
+
     pkt->trimFront();
-    pkt->removeAtFront<LoRaMacFrame>();
-    return pkt->peekAtFront<LoRaAppPacket>();
+    auto frame = pkt->removeAtFront<LoRaMacFrame>();
+
+    const auto & rcvAppPacket = pkt->peekAtFront<LoRaAppPacket>();
+
+    if(rcvAppPacket->getOptions().getADRACKReq())
+    {
+        sendADRAckRep = true;
+    }
+
+    for(uint i=0;i<knownNodes.size();i++)
+    {
+        if(knownNodes[i].srcAddr == frame->getTransmitterAddress())
+        {
+            knownNodes[i].adrListSNIR.push_back(SNIRinGW);
+            knownNodes[i].historyAllSNIR->record(SNIRinGW);
+            knownNodes[i].historyAllRSSI->record(RSSIinGW);
+            knownNodes[i].receivedSeqNumber->record(frame->getSequenceNumber());
+            if(knownNodes[i].adrListSNIR.size() == 20) knownNodes[i].adrListSNIR.pop_front();
+            knownNodes[i].framesFromLastADRCommand++;
+
+            if(knownNodes[i].framesFromLastADRCommand == 20 || sendADRAckRep == true)
+            {
+                nodeIndex = i;
+                knownNodes[i].framesFromLastADRCommand = 0;
+                sendADR = true;
+                if(adrMethod == "max")
+                {
+                    SNRm = *max_element(knownNodes[i].adrListSNIR.begin(), knownNodes[i].adrListSNIR.end());
+                }
+                if(adrMethod == "avg")
+                {
+                    double totalSNR = 0;
+                    int numberOfFields = 0;
+                    for (std::list<double>::iterator it=knownNodes[i].adrListSNIR.begin(); it != knownNodes[i].adrListSNIR.end(); ++it)
+                    {
+                        totalSNR+=*it;
+                        numberOfFields++;
+                    }
+                    SNRm = totalSNR/numberOfFields;
+                }
+
+            }
+
+        }
+    }
+
+    if(sendADR || sendADRAckRep)
+    {
+        auto mgmtPacket = makeShared<LoRaAppPacket>();
+        mgmtPacket->setMsgType(TXCONFIG);
+
+        if(sendADR)
+        {
+            double SNRmargin;
+            double requiredSNR;
+            if(frame->getLoRaSF() == 7) requiredSNR = -7.5;
+            if(frame->getLoRaSF() == 8) requiredSNR = -10;
+            if(frame->getLoRaSF() == 9) requiredSNR = -12.5;
+            if(frame->getLoRaSF() == 10) requiredSNR = -15;
+            if(frame->getLoRaSF() == 11) requiredSNR = -17.5;
+            if(frame->getLoRaSF() == 12) requiredSNR = -20;
+
+            SNRmargin = SNRm - requiredSNR - adrDeviceMargin;
+            knownNodes[nodeIndex].calculatedSNRmargin->record(SNRmargin);
+            int Nstep = round(SNRmargin/3);
+            LoRaOptions newOptions;
+
+            // Increase the data rate with each step
+            int calculatedSF = frame->getLoRaSF();
+            while(Nstep > 0 && calculatedSF > 7)
+            {
+                calculatedSF--;
+                Nstep--;
+            }
+
+            // Decrease the Tx power by 3 for each step, until min reached
+            double calculatedPowerdBm = math::mW2dBmW(frame->getLoRaTP()) + 30;
+            while(Nstep > 0 && calculatedPowerdBm > 2)
+            {
+                calculatedPowerdBm-=3;
+                Nstep--;
+            }
+            if(calculatedPowerdBm < 2) calculatedPowerdBm = 2;
+
+            // Increase the Tx power by 3 for each step, until max reached
+            while(Nstep < 0 && calculatedPowerdBm < 14)
+            {
+                calculatedPowerdBm+=3;
+                Nstep++;
+            }
+            if(calculatedPowerdBm > 14) calculatedPowerdBm = 14;
+
+            newOptions.setLoRaSF(calculatedSF);
+            newOptions.setLoRaTP(calculatedPowerdBm);
+            EV << calculatedSF << endl;
+            EV << calculatedPowerdBm << endl;
+            mgmtPacket->setOptions(newOptions);
+        }
+
+        if(simTime() >= getSimulation()->getWarmupPeriod() && sendADR == true)
+        {
+            knownNodes[nodeIndex].numberOfSentADRPackets++;
+        }
+
+        auto frameToSend = makeShared<LoRaMacFrame>();
+        frameToSend->setChunkLength(B(par("headerLength").intValue()));
+
+      //  LoRaMacFrame *frameToSend = new LoRaMacFrame("ADRPacket");
+
+        //frameToSend->encapsulate(mgmtPacket);
+        frameToSend->setReceiverAddress(frame->getTransmitterAddress());
+        //FIXME: What value to set for LoRa TP
+        //frameToSend->setLoRaTP(pkt->getLoRaTP());
+        frameToSend->setLoRaTP(math::dBmW2mW(14));
+        frameToSend->setLoRaCF(frame->getLoRaCF());
+        frameToSend->setLoRaSF(frame->getLoRaSF());
+        frameToSend->setLoRaBW(frame->getLoRaBW());
+
+        auto pktAux = new Packet("ADRPacket");
+        mgmtPacket->setChunkLength(B(par("headerLength").intValue()));
+
+        pktAux->insertAtFront(mgmtPacket);
+        pktAux->insertAtFront(frameToSend);
+        socket.sendTo(pktAux, pickedGateway, destPort);
+
+    }
+    //delete pkt;
 }
-//
-//void NetworkServerApp::evaluateADR(Packet* pkt, L3Address pickedGateway, double SNIRinGW, double RSSIinGW)
-//{
-//    bool sendADR = false;
-//    bool sendADRAckRep = false;
-//    double SNRm; //needed for ADR
-//    int nodeIndex;
-//
-//    pkt->trimFront();
-//    auto frame = pkt->removeAtFront<LoRaMacFrame>();
-//
-//    const auto & rcvAppPacket = pkt->peekAtFront<LoRaAppPacket>();
-//
-//    if(rcvAppPacket->getOptions().getADRACKReq())
-//    {
-//        sendADRAckRep = true;
-//    }
-//
-//    for(uint i=0;i<knownNodes.size();i++)
-//    {
-//        if(knownNodes[i].srcAddr == frame->getTransmitterAddress())
-//        {
-//            knownNodes[i].adrListSNIR.push_back(SNIRinGW);
-//            knownNodes[i].historyAllSNIR->record(SNIRinGW);
-//            knownNodes[i].historyAllRSSI->record(RSSIinGW);
-//            knownNodes[i].receivedSeqNumber->record(frame->getSequenceNumber());
-//            if(knownNodes[i].adrListSNIR.size() == 20) knownNodes[i].adrListSNIR.pop_front();
-//            knownNodes[i].framesFromLastADRCommand++;
-//
-//            if(knownNodes[i].framesFromLastADRCommand == 20 || sendADRAckRep == true)
-//            {
-//                nodeIndex = i;
-//                knownNodes[i].framesFromLastADRCommand = 0;
-//                sendADR = true;
-//                if(adrMethod == "max")
-//                {
-//                    SNRm = *max_element(knownNodes[i].adrListSNIR.begin(), knownNodes[i].adrListSNIR.end());
-//                }
-//                if(adrMethod == "avg")
-//                {
-//                    double totalSNR = 0;
-//                    int numberOfFields = 0;
-//                    for (std::list<double>::iterator it=knownNodes[i].adrListSNIR.begin(); it != knownNodes[i].adrListSNIR.end(); ++it)
-//                    {
-//                        totalSNR+=*it;
-//                        numberOfFields++;
-//                    }
-//                    SNRm = totalSNR/numberOfFields;
-//                }
-//
-//            }
-//
-//        }
-//    }
-//
-//    if(sendADR || sendADRAckRep)
-//    {
-//        auto mgmtPacket = makeShared<LoRaAppPacket>();
-//        mgmtPacket->setMsgType(TXCONFIG);
-//
-//        if(sendADR)
-//        {
-//            double SNRmargin;
-//            double requiredSNR;
-//            if(frame->getLoRaSF() == 7) requiredSNR = -7.5;
-//            if(frame->getLoRaSF() == 8) requiredSNR = -10;
-//            if(frame->getLoRaSF() == 9) requiredSNR = -12.5;
-//            if(frame->getLoRaSF() == 10) requiredSNR = -15;
-//            if(frame->getLoRaSF() == 11) requiredSNR = -17.5;
-//            if(frame->getLoRaSF() == 12) requiredSNR = -20;
-//
-//            SNRmargin = SNRm - requiredSNR - adrDeviceMargin;
-//            knownNodes[nodeIndex].calculatedSNRmargin->record(SNRmargin);
-//            int Nstep = round(SNRmargin/3);
-//            LoRaOptions newOptions;
-//
-//            // Increase the data rate with each step
-//            int calculatedSF = frame->getLoRaSF();
-//            while(Nstep > 0 && calculatedSF > 7)
-//            {
-//                calculatedSF--;
-//                Nstep--;
-//            }
-//
-//            // Decrease the Tx power by 3 for each step, until min reached
-//            double calculatedPowerdBm = math::mW2dBmW(frame->getLoRaTP()) + 30;
-//            while(Nstep > 0 && calculatedPowerdBm > 2)
-//            {
-//                calculatedPowerdBm-=3;
-//                Nstep--;
-//            }
-//            if(calculatedPowerdBm < 2) calculatedPowerdBm = 2;
-//
-//            // Increase the Tx power by 3 for each step, until max reached
-//            while(Nstep < 0 && calculatedPowerdBm < 14)
-//            {
-//                calculatedPowerdBm+=3;
-//                Nstep++;
-//            }
-//            if(calculatedPowerdBm > 14) calculatedPowerdBm = 14;
-//
-//            newOptions.setLoRaSF(calculatedSF);
-//            newOptions.setLoRaTP(calculatedPowerdBm);
-//            EV << calculatedSF << endl;
-//            EV << calculatedPowerdBm << endl;
-//            mgmtPacket->setOptions(newOptions);
-//        }
-//
-//        if(simTime() >= getSimulation()->getWarmupPeriod() && sendADR == true)
-//        {
-//            knownNodes[nodeIndex].numberOfSentADRPackets++;
-//        }
-//
-//        auto frameToSend = makeShared<LoRaMacFrame>();
-//        frameToSend->setChunkLength(B(par("headerLength").intValue()));
-//
-//      //  LoRaMacFrame *frameToSend = new LoRaMacFrame("ADRPacket");
-//
-//        //frameToSend->encapsulate(mgmtPacket);
-//        frameToSend->setReceiverAddress(frame->getTransmitterAddress());
-//        //FIXME: What value to set for LoRa TP
-//        //frameToSend->setLoRaTP(pkt->getLoRaTP());
-//        frameToSend->setLoRaTP(math::dBmW2mW(14));
-//        frameToSend->setLoRaCF(frame->getLoRaCF());
-//        frameToSend->setLoRaSF(frame->getLoRaSF());
-//        frameToSend->setLoRaBW(frame->getLoRaBW());
-//
-//        auto pktAux = new Packet("ADRPacket");
-//        mgmtPacket->setChunkLength(B(par("headerLength").intValue()));
-//
-//        pktAux->insertAtFront(mgmtPacket);
-//        pktAux->insertAtFront(frameToSend);
-//        socket.sendTo(pktAux, pickedGateway, destPort);
-//
-//    }
-//    //delete pkt;
-//}
 
 void NetworkServerApp::receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details)
 {

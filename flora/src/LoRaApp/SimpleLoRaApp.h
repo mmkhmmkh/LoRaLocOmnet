@@ -42,6 +42,7 @@ class SimpleLoRaApp : public cSimpleModule, public ILifecycle
         int numInitStages() const override { return NUM_INIT_STAGES; }
         void handleMessage(cMessage *msg) override;
         virtual bool handleOperationStage(LifecycleOperation *operation, IDoneCallback *doneCallback) override;
+
         void handleMessageFromLowerLayer(cMessage *msg);
         std::pair<double,double> generateUniformCircleCoordinates(double radius, double gatewayX, double gatewayY);
         void sendJoinRequest();
@@ -51,7 +52,6 @@ class SimpleLoRaApp : public cSimpleModule, public ILifecycle
         int sentPackets;
         int receivedADRCommands;
         int lastSentMeasurement;
-        bool staticNode;
         simtime_t timeToFirstPacket;
         simtime_t timeToNextPacket;
 
@@ -61,16 +61,13 @@ class SimpleLoRaApp : public cSimpleModule, public ILifecycle
         //history of sent packets;
         cOutVector sfVector;
         cOutVector tpVector;
-        cOutVector positionXVector;
-        cOutVector positionYVector;
-
 
         //LoRa parameters control
         LoRaRadio *loRaRadio;
 
         void setSF(int SF);
         int getSF();
-        void setTP(double TP);
+        void setTP(int TP);
         double getTP();
         void setCR(int CR);
         int getCR();

@@ -43,8 +43,5 @@ class LoRaOptions {
 class LoRaAppPacket extends inet::FieldsChunk {
     int msgType @enum(AppPacketType);
     int sampleMeasurement;
-    int64_t creationTime;
-    double x;
-    double y;
     LoRaOptions options;
 }

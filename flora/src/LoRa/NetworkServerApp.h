@@ -28,7 +28,6 @@
 #include "inet/applications/base/ApplicationBase.h"
 #include "inet/transportlayer/contract/udp/UdpSocket.h"
 #include "../LoRaApp/LoRaAppPacket_m.h"
-#include "inet/common/geometry/common/Coord.h"
 #include <list>
 
 namespace flora {
@@ -51,40 +50,6 @@ class knownGW
 {
 public:
     L3Address ipAddr;
-    cOutVector *historySNIR;
-    cOutVector *historyRSSI;
-    cOutVector *receivedSN;
-    cOutVector *nodeX;
-    cOutVector *nodeY;
-    cOutVector *deltaT;
-
-    cOutVector *GW0historySNIR;
-    cOutVector *GW0historyRSSI;
-    cOutVector *GW0receivedSN;
-    cOutVector *GW0nodeX;
-    cOutVector *GW0nodeY;
-    cOutVector *GW0deltaT;
-
-    cOutVector *GW1historySNIR;
-    cOutVector *GW1historyRSSI;
-    cOutVector *GW1receivedSN;
-    cOutVector *GW1nodeX;
-    cOutVector *GW1nodeY;
-    cOutVector *GW1deltaT;
-
-    cOutVector *GW2historySNIR;
-    cOutVector *GW2historyRSSI;
-    cOutVector *GW2receivedSN;
-    cOutVector *GW2nodeX;
-    cOutVector *GW2nodeY;
-    cOutVector *GW2deltaT;
-
-    cOutVector *GW3historySNIR;
-    cOutVector *GW3historyRSSI;
-    cOutVector *GW3receivedSN;
-    cOutVector *GW3nodeX;
-    cOutVector *GW3nodeY;
-    cOutVector *GW3deltaT;
 };
 
 class receivedPacket
@@ -92,7 +57,7 @@ class receivedPacket
 public:
     Packet* rcvdPacket = nullptr;
     cMessage* endOfWaiting = nullptr;
-    std::vector<std::tuple<L3Address, double, double, int64_t>> possibleGateways; // <address, sinr, rssi>
+    std::vector<std::tuple<L3Address, double, double>> possibleGateways; // <address, sinr, rssi>
 };
 
 class NetworkServerApp : public cSimpleModule, cListener
@@ -120,11 +85,9 @@ class NetworkServerApp : public cSimpleModule, cListener
     void setSocketOptions();
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     bool isPacketProcessed(const Ptr<const LoRaMacFrame> &);
-    void updateKnownGateways(Packet* pkt);
     void updateKnownNodes(Packet* pkt);
     void addPktToProcessingTable(Packet* pkt);
     void processScheduledPacket(cMessage* selfMsg);
-    const Ptr<const LoRaAppPacket> getNodeData(Packet* pkt);
     void evaluateADR(Packet *pkt, L3Address pickedGateway, double SNIRinGW, double RSSIinGW);
     void receiveSignal(cComponent *source, simsignal_t signalID, intval_t value, cObject *details) override;
     bool evaluateADRinServer;
@@ -136,7 +99,6 @@ class NetworkServerApp : public cSimpleModule, cListener
     int counterOfSentPacketsFromNodesPerSF[6];
     int counterUniqueReceivedPackets = 0;
     int counterUniqueReceivedPacketsPerSF[6];
-    bool finished = false;
 };
 } //namespace inet
 #endif

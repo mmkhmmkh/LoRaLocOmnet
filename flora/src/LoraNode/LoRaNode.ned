@@ -15,7 +15,7 @@
 
 package flora.LoraNode;
 
-import flora.LoRaApp.LoRaLocMobility;
+import inet.mobility.static.StationaryMobility;
 import inet.networklayer.common.InterfaceTable;
 import inet.applications.contract.IApp;
 import flora.LoRa.LoRaNic;
@@ -36,7 +36,7 @@ module LoRaNode
         interfaceTable: InterfaceTable {
             @display("p=30,26");
         }
-        mobility: LoRaLocMobility {
+        mobility: StationaryMobility {
             @display("p=24,88");
         }
         LoRaNic: LoRaNic {
@@ -47,8 +47,8 @@ module LoRaNode
                 @display("p=375,76,row,150");
         }
     connections allowunconnected:
-        for i=0..numApps-1 {
-            app[i].socketOut --> LoRaNic.upperLayerIn;
-            LoRaNic.upperLayerOut --> app[i].socketIn;
+        for i=0..numApps-1 {		
+        	app[i].socketOut --> LoRaNic.upperLayerIn;
+        	LoRaNic.upperLayerOut --> app[i].socketIn;
         }
 }
